@@ -31,6 +31,12 @@ uv run fda510k build-site-data   # -> build/site-data/ (static JSON for the fron
 uv run fda510k all               # all three, in order
 ```
 
+`uv run fda510k probe` checks whether the current machine can fetch from
+accessdata.fda.gov: 7 requests, 30 s apart, only between 03:00 and 09:00 UTC (FDA's
+robots.txt). Outside that window it sends nothing and exits with code 3; pass
+`--wait-hours N` to wait for the window instead. On GitHub, run the
+**Probe accessdata.fda.gov** workflow by hand. Results land in `build/probe/`.
+
 `build/` is never committed. The committed inputs are:
 
 - `seed/`: predicate edges imported once from

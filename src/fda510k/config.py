@@ -1,10 +1,17 @@
 from dataclasses import dataclass
+from datetime import time
 from pathlib import Path
 
 from fda510k import __version__
+from fda510k.robots import VisitWindow
 
 PIPELINE_VERSION = __version__
-USER_AGENT = f"510k-browser/{__version__} (+https://github.com/ianbulovic/510k-browser)"
+REPO_URL = "https://github.com/Machine-Learning-for-Medical-Language/510k-browser"
+USER_AGENT = f"510k-browser/{__version__} (+{REPO_URL})"
+
+# accessdata.fda.gov's Visiting-hours (23:00EDT-05:00EDT) as of 2026-11-13. Used only to
+# decide whether robots.txt itself may be requested; after that its live value applies.
+ACCESSDATA_KNOWN_WINDOW = VisitWindow(time(3, 0), time(9, 0))
 
 
 @dataclass(frozen=True)
@@ -44,6 +51,10 @@ class Paths:
     @property
     def site_data(self) -> Path:
         return self.build / "site-data"
+
+    @property
+    def probe(self) -> Path:
+        return self.build / "probe"
 
     @property
     def seed(self) -> Path:

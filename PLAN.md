@@ -394,11 +394,21 @@ uv project, ruff/ty/pytest configs, CI workflow, README, LICENSE.
 *Done when:* CI passes on an empty package.
 
 ### M1 — Reachability spike (do first; it decides the architecture)
-A throwaway workflow, run inside the 03:00–09:00 UTC window, that reads FDA's
-robots.txt with the custom parser, fetches 3–5 summary PDFs (30 s apart) from a GitHub
-runner, and logs status codes and headers.
+The robots.txt parser (`robots.py`) and the paced client (`polite.py`) are built to
+keep, since M4's fetcher reuses them. Only `fda510k probe` and
+`.github/workflows/probe-fda.yml` are specific to M1. The probe sends 7 requests,
+30+ s apart, only inside the 03:00–09:00 UTC window:
+- robots.txt (checked against the last-known window before it is requested);
+- five summary PDFs at their conventional URLs, one per URL era
+  (`pdf23/`, `pdf15/`, `pdf5/`, and flat `pdf/` for 2001 and 1999);
+- one `pmn.cfm` record page, whose "Summary" link is compared with the convention.
+
+It writes a report (status, redirects, selected headers, `%PDF-` check, page titles)
+and keeps the PDFs as a 7-day artifact. It stops at the first 403, 429 or block page.
+Exit codes: 0 reachable, 1 error, 2 blocked, 3 refused (outside the window).
+
 *Done when:* we know whether Actions can fetch from FDA directly or needs the
-self-hosted fallback.
+self-hosted fallback, and whether the PDF URL convention holds for each era.
 
 ### M2 — Metadata + seed graph
 `ingest`, seed import, `graph`, and `build-site-data`, with no PDF fetching yet.

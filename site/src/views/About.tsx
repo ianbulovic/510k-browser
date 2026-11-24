@@ -49,8 +49,11 @@ export function About() {
 
       <h2>Report a wrong link</h2>
       <p>
-        Open an issue on <a href="https://github.com/ianbulovic/510k-browser/issues">GitHub</a> with
-        the two submission numbers and what the summary says.
+        Open an issue on{" "}
+        <a href="https://github.com/Machine-Learning-for-Medical-Language/510k-browser/issues">
+          GitHub
+        </a>{" "}
+        with the two submission numbers and what the summary says.
       </p>
 
       <Pending value={meta} label="build details">

@@ -1,0 +1,50 @@
+name: Probe accessdata.fda.gov
+
+# Milestone M1: can GitHub-hosted runners fetch from accessdata.fda.gov?
+# Sends 7 requests (robots.txt, 5 summary PDFs, 1 record page), 30+ s apart, only
+# inside FDA's visiting window (03:00-09:00 UTC). If started outside the window, the
+# job waits up to `wait_hours` for it to open, so start it after ~21:30 UTC
+# (4:30 PM US Eastern in winter) and before 08:45 UTC. Started earlier, it exits
+# immediately without sending anything.
+on:
+  workflow_dispatch:
+    inputs:
+      wait_hours:
+        description: "Hours to wait for the window to open (job limit is 6 h)"
+        default: "5.5"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: probe-fda
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+
+      - name: Probe
+        env:
+          WAIT_HOURS: ${{ inputs.wait_hours }}
+        run: |
+          set +e
+          uv run fda510k probe --wait-hours "$WAIT_HOURS"
+          code=$?
+          cat build/probe/summary.md >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: fda-probe
+          path: build/probe
+          retention-days: 7

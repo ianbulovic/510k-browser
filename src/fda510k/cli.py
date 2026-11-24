@@ -36,6 +36,18 @@ def build_parser() -> argparse.ArgumentParser:
     site.add_argument("--out", type=Path, help="output directory (default: build/site-data)")
 
     sub.add_parser("all", help="run ingest, graph and build-site-data in order")
+
+    probe = sub.add_parser(
+        "probe",
+        help="check whether this machine can fetch from accessdata.fda.gov (7 polite requests)",
+    )
+    probe.add_argument(
+        "--wait-hours",
+        type=float,
+        default=0,
+        help="if outside FDA's visiting window, wait up to this long for it to open (default: 0)",
+    )
+    probe.add_argument("--out", type=Path, help="output directory (default: build/probe)")
     return parser
 
 
@@ -60,6 +72,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         case "all":
             _report({"ingest": _ingest(paths), "graph": _graph(paths)})
             _report(_site_data(paths, None))
+        case "probe":
+            from fda510k import probe
+
+            result = probe.run(args.out or paths.probe, wait_hours=args.wait_hours)
+            print(probe.render_summary(result), end="")
+            return probe.EXIT_CODES[result.verdict]
     return 0
 
 
