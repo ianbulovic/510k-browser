@@ -124,3 +124,28 @@ def test_off_host_redirect_not_followed() -> None:
     fetched = polite.get(f"{SITE}/a.pdf")
     assert fetched.response.status_code == 302
     assert len(transport.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "location",
+    [
+        "/apology_objects/abuse-detection-apology.html",
+        "https://www.fda.gov/apology_objects/excessive-requests-apology.html",
+    ],
+)
+def test_redirect_to_apology_page_is_blocked_and_not_followed(location: str) -> None:
+    polite, transport, _ = make(lambda _: httpx.Response(302, headers={"location": location}))
+    with pytest.raises(Blocked) as exc:
+        polite.get(f"{SITE}/robots.txt")
+    assert "apology page" in exc.value.reason
+    assert exc.value.status == 302
+    assert len(transport.calls) == 1
+
+
+def test_apology_page_title_is_blocked() -> None:
+    page = b"<html><head><title>FDA Apology</title></head><body>Sorry</body></html>"
+    polite, _, _ = make(
+        lambda _: httpx.Response(404, content=page, headers={"content-type": "text/html"})
+    )
+    with pytest.raises(Blocked):
+        polite.get(f"{SITE}/robots.txt")

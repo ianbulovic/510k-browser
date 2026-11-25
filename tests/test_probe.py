@@ -141,6 +141,17 @@ def test_transport_error_recorded_and_probe_continues(tmp_path: Path) -> None:
     assert report.verdict is Verdict.REACHABLE
 
 
+def test_robots_redirected_to_apology_page_is_blocked(tmp_path: Path) -> None:
+    apology = httpx.Response(
+        302, headers={"location": "/apology_objects/abuse-detection-apology.html"}
+    )
+    report, transport, _ = run(tmp_path, site({probe.ROBOTS_URL: apology}))
+    assert report.verdict is Verdict.BLOCKED
+    assert probe.EXIT_CODES[report.verdict] == 2
+    assert len(transport.calls) == 1
+    assert "apology page" in report.detail
+
+
 def test_robots_unparseable_stops(tmp_path: Path) -> None:
     report, transport, _ = run(
         tmp_path,

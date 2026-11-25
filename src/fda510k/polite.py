@@ -22,7 +22,11 @@ from fda510k.robots import MIN_DELAY_SECONDS, CrawlPolicy, VisitWindow
 
 MAX_REDIRECTS = 5
 BLOCK_STATUSES = {403, 429}
+# Akamai sends clients it rejects to FDA's "apology" pages (e.g.
+# /apology_objects/excessive-requests-apology.html), titled "FDA Apology".
+APOLOGY_PATH = "/apology_objects/"
 _BLOCK_MARKERS = (
+    "fda apology",
     "access denied",
     "errors.edgesuite.net",
     "the requested url was rejected",
@@ -130,6 +134,12 @@ class PoliteClient:
             if not location:
                 break
             target = urljoin(str(fetched.response.url), location)
+            if urlsplit(target).path.startswith(APOLOGY_PATH):
+                raise Blocked(
+                    str(fetched.response.url),
+                    fetched.response.status_code,
+                    f"redirected to an FDA apology page: {target}",
+                )
             if urlsplit(target).hostname != self._host:
                 break
             fetched.response, hop = self._send(target)
