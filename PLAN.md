@@ -359,7 +359,7 @@ frame-blocking headers **[verify]** and linking out avoids mirroring issues.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| FDA blocks GitHub-hosted runner IPs (Akamai/WAF) | Fetching impossible from Actions | **Test in milestone 1 before anything else.** Fallback: a self-hosted runner or a cheap VPS that runs only the fetch stage and pushes to `state/`. |
+| FDA blocks GitHub-hosted runner IPs (Akamai/WAF) | Fetching impossible from Actions | **Confirmed 2026-11-25 (see M1).** Fallback: a self-hosted runner on a non-cloud network that runs only the fetch stage and pushes to `state/`. A cloud VPS is likely rejected the same way. |
 | FDA tightens its crawl rules (they were checked 2026-11-13) | Slower backfill | Read robots.txt on every run and stop if it can't be parsed or gets stricter; fetch newest first; the seed data covers history. |
 | Accidentally requesting a disallowed path | Violates FDA's rules and risks a block | Check every URL against `Disallow` before the request; a unit test asserts that the URL builders produce only allowed paths. |
 | PDF URL pattern doesn't hold for some eras | Missed PDFs | Fall back to the `pmn.cfm` page; track the hit rate of each pattern. |
@@ -409,6 +409,16 @@ Exit codes: 0 reachable, 1 error, 2 blocked, 3 refused (outside the window).
 
 *Done when:* we know whether Actions can fetch from FDA directly or needs the
 self-hosted fallback, and whether the PDF URL convention holds for each era.
+
+**Results so far**
+
+| Run | From | Result |
+|---|---|---|
+| 2026-11-25 05:09 UTC | GitHub Actions, `ubuntu-latest` | **Blocked on the first request.** `robots.txt` → 302 to `/apology_objects/abuse-detection-apology.html` (404, `Server: AkamaiGHost`). Akamai's bot detection rejected the client outright; with one request sent, this is not rate limiting. The probe then followed the redirect (fixed: apology redirects now count as blocked and aren't followed). |
+| _pending_ | A home or university network, same User-Agent | Tells apart "cloud IP ranges are rejected" (then use a self-hosted runner on a non-cloud network) from "clients like ours are rejected anywhere" (then ask FDA for permission; don't disguise the client as a browser). |
+
+Don't re-run the probe from GitHub-hosted runners; more rejected attempts from those
+addresses add no information.
 
 ### M2 — Metadata + seed graph
 `ingest`, seed import, `graph`, and `build-site-data`, with no PDF fetching yet.
